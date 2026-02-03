@@ -137,13 +137,16 @@ def test(model, device, test_loader):
 
 # --- Main Execution ---
 def main():
+
+    # HYPERPARAMETERS:
+
     parser = argparse.ArgumentParser(description='PyTorch MNIST Baseline')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N', help='input batch size for training')
-    parser.add_argument('--epochs', type=int, default=4, metavar='N', help='number of epochs to train')
+    parser.add_argument('--epochs', type=int, default=1, metavar='N', help='number of epochs to train')
     parser.add_argument('--lr', type=float, default=1.0, metavar='LR', help='learning rate')
     parser.add_argument('--gamma', type=float, default=0.7, metavar='M', help='Learning rate step gamma')
     parser.add_argument('--no-accel', action='store_true', default=False, help='disables accelerator')
-    parser.add_argument('--seeds', type=int, nargs='+', default=[1, 42, 2024], help='List of seeds to run for stability check')
+    parser.add_argument('--seeds', type=int, nargs='+', default=[1], help='List of seeds to run for stability check')
     args = parser.parse_args()
 
     # Device configuration

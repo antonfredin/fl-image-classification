@@ -25,7 +25,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import random_split
 
-from util import num_params
 from data import fetch_dataset, iid_partition_loader, noniid_partition_loader
 
 # ---------------------------------------------------------------------------
@@ -343,29 +342,6 @@ if __name__ == "__main__":
     # Use full baseline (100 epochs) for Exp 3
     save_plot("Exp 3: Participation (K=600)", "exp3_participation.png", 
               base_x, base_val, base_test, exp3_val, exp3_test, lambda c: f'C={c}')
-
-    # Output Official Test Results
-    print("\n" + "="*50)
-    print(" OFFICIAL TEST SET RESULTS")
-    print("="*50)
-    
-    baseline_test_acc = validate(baseline_model, test_loader)
-    print(f"Baseline (Centralized): \t{baseline_test_acc:.4f}")
-    
-    print("\n--- Goal 4: Participation (K=600) ---")
-    for C, model in exp3_models.items():
-        test_acc = validate(model, test_loader)
-        print(f"C={C}: \t\t\t\t{test_acc:.4f}")
-
-    # Save numeric outputs to text
-    with open("results/final_test_accuracy.txt", "w") as f:
-        f.write("OFFICIAL TEST SET RESULTS\n")
-        f.write("="*50 + "\n")
-        f.write(f"Baseline (Centralized): \t{baseline_test_acc:.4f}\n\n")
-        f.write("--- Goal 4: Participation (K=600) ---\n")
-        for C, model in exp3_models.items():
-            test_acc = validate(model, test_loader)
-            f.write(f"C={C}: \t\t\t\t{test_acc:.4f}\n")
             
     # Save raw arrays and dictionaries to a pickle file for future replotting
     raw_data_export = {

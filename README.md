@@ -1,8 +1,3 @@
-You are finally at the finish line! A strong, professional `README.md` is the perfect way to wrap up a coding project, especially for a university thesis. It tells the examiner (and any future researchers) exactly what your code does and how to run it.
-
-Here is a clean, GitHub-standard `README.md` based directly on your final code and thesis structure. 
-
-```markdown
 # Distributed Image Classification with Federated Learning
 
 This repository contains the source code for a BSc thesis evaluating the performance and communication efficiency of Federated Learning (FL). Specifically, it implements the FederatedAveraging (FedAvg) algorithm and evaluates it against a centralized Deep Learning baseline using the MNIST dataset.
@@ -59,4 +54,3 @@ After the script finishes, the `results/` folder will contain:
 
 ## 📜 License & Citation
 If you use this code or rely on these findings, please refer to the corresponding BSc thesis report (TRITA-...). 
-```

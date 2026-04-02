@@ -1,3 +1,18 @@
+"""
+Distributed Image Classification with Federated Learning
+
+This script is part of a BSc thesis evaluating the performance of federated learning
+with regards to client size, non-iid vs iid data and client participation.
+
+Author: Anton Fredin and Marcus Johansson
+Date: Spring 2026
+Institution: KTH Royal Institute of Technology
+Course: EF112X
+
+For more information, see the corresponding thesis report.
+TRITA: 
+"""
+
 import random
 import torch
 import torchvision

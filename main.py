@@ -27,21 +27,17 @@ from torch.utils.data import random_split
 
 from data import fetch_dataset, iid_partition_loader, noniid_partition_loader
 
-# ---------------------------------------------------------------------------
-# Configuration and Hyperparameters
-# ---------------------------------------------------------------------------
 np.random.seed(0)
 torch.manual_seed(0)
 
-if torch.backends.mps.is_available():
-    device = 'mps'
-elif torch.cuda.is_available():
+if torch.cuda.is_available():
     device = 'cuda'
 else:
     device = 'cpu'
 
-print(f"| Using device: {device}")
+print(f"using device: {device}")
 
+# HYPERPARAMETERS
 BATCH_SIZE = 50        
 LR = 0.01             
 LOCAL_EPOCHS = 3       
@@ -51,14 +47,10 @@ EXP3_BATCH_SIZE = 10
 if not os.path.exists('results'):
     os.makedirs('results', exist_ok=True)
 
-# ---------------------------------------------------------------------------
-# Data Loading and Partitioning
-# ---------------------------------------------------------------------------
-print("Loading data...")
+# data loading and partitioning
 full_train_data, test_data = fetch_dataset()
 
-# Ensure train_size is divisible by (600 clients * 50 batch size) = 30000
-target_train_size = int(0.8 * len(full_train_data))
+target_train_size = int(0.8 * len(full_train_data)) # ensure train_size is divisible by (600 clients * 50 batch size) = 30000
 train_size = (target_train_size // 30000) * 30000 
 if train_size == 0: 
     train_size = 30000 
@@ -70,9 +62,6 @@ central_train_loader = torch.utils.data.DataLoader(train_data, batch_size=64, sh
 val_loader = torch.utils.data.DataLoader(val_data, batch_size=1000, shuffle=False)
 test_loader = torch.utils.data.DataLoader(test_data, batch_size=1000, shuffle=False)
 
-# ---------------------------------------------------------------------------
-# Model Architecture
-# ---------------------------------------------------------------------------
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()
@@ -93,17 +82,11 @@ class CNN(nn.Module):
 
 criterion = nn.CrossEntropyLoss()
 
-# ---------------------------------------------------------------------------
-# Shared Model Initialization
-# ---------------------------------------------------------------------------
-# To ensure a scientifically fair comparison across all experiments,
-# we generate and store a master set of initialized weights.
+# for a fair comparison across all experiments we generate and store a set of initialized weights.
 initial_model_instance = CNN()
 INITIAL_MODEL_STATE = copy.deepcopy(initial_model_instance.state_dict())
 
-# ---------------------------------------------------------------------------
-# Training and Evaluation Utilities
-# ---------------------------------------------------------------------------
+# training and evalulation functions 
 def validate(model, dataloader):
     model = model.to(device)
     model.eval()
@@ -157,11 +140,9 @@ def fed_avg_round(global_model, client_loaders, client_indices, lr, local_epochs
     global_model.load_state_dict(avg_weights)
     return global_model
 
-# ---------------------------------------------------------------------------
-# Experiment Runners
-# ---------------------------------------------------------------------------
+# the experiments 
 def run_goal_1_baseline(epochs=5):
-    print(f"\n Goal 1: Centralized Baseline ({epochs} epochs)")
+    print(f"\n Centralized Baseline ({epochs} epochs)")
     model = CNN().to(device)
     model.load_state_dict(INITIAL_MODEL_STATE)
     optimizer = torch.optim.SGD(model.parameters(), lr=LR)
@@ -243,17 +224,14 @@ def run_fl_experiment(name, K, loaders, rounds, C=1.0):
     print(f"Time {name}: {time.time()-start:.1f}s")
     return model, val_acc_hist, test_acc_hist
 
-# ---------------------------------------------------------------------------
-# Plotting Utility
-# ---------------------------------------------------------------------------
 def save_plot(title, filename, base_x, base_val, base_test, exp_val, exp_test, labels_map=None):
     plt.figure(figsize=(12, 7))
     
-    # Plot Baseline
+    # plot Baseline
     plt.plot(base_x, base_test, '-', linewidth=2, label='Baseline (Test)', color='black')
     plt.plot(base_x, base_val, '--', linewidth=2, label='Baseline (Val)', color='black', alpha=0.7)
     
-    # Plot FL Experiments
+    # plot FL Experiments
     for key in exp_test.keys():
         label = labels_map(key) if labels_map else str(key)
         x_axis = range(1, len(exp_test[key]) + 1)
@@ -273,15 +251,11 @@ def save_plot(title, filename, base_x, base_val, base_test, exp_val, exp_test, l
     plt.savefig(f'results/{filename}')
     plt.close()
 
-# ---------------------------------------------------------------------------
-# Main Execution
-# ---------------------------------------------------------------------------
 if __name__ == "__main__":
     
-    # Run Baseline (100 Epochs)
     baseline_model, base_x, base_val, base_test, train_loss, val_loss = run_goal_1_baseline(epochs=100)
     
-    # Overfitting Check Plot
+    # overfitting check with plot 
     plt.figure(figsize=(8, 5))
     epochs_range = range(1, len(train_loss) + 1)
     plt.plot(epochs_range, train_loss, label='Training Loss', color='blue', linewidth=2)
@@ -294,7 +268,7 @@ if __name__ == "__main__":
     plt.savefig('results/baseline_overfitting.png')
     plt.close()
     
-    # Exp 1: Client Scaling (20 Rounds)
+    # experiment 1: client scaling
     exp1_val = {}
     exp1_test = {}
     for K in [1, 5, 10, 20, 50, 100]:
@@ -303,12 +277,12 @@ if __name__ == "__main__":
         exp1_val[K] = val_h
         exp1_test[K] = test_h
         
-    # Exp 2: Non-IID Distribution (20 Rounds)
+    # experiment 2: non-iid distribution
     m_per_shard = int(len(train_data) / (10 * 2))
     non_iid_loaders = noniid_partition_loader(train_data, bsz=BATCH_SIZE, m_per_shard=m_per_shard, n_shards_per_client=2)
     non_iid_model, exp2_noniid_val, exp2_noniid_test = run_fl_experiment("Non-IID", 10, non_iid_loaders, rounds=20)
     
-    # Exp 3: Participation Scaling (100 Rounds)
+    # experiment 3: client participation fraction
     loaders_600 = iid_partition_loader(train_data, bsz=EXP3_BATCH_SIZE, n_clients=600)
     exp3_val = {}
     exp3_test = {}
@@ -319,31 +293,22 @@ if __name__ == "__main__":
         exp3_test[C] = test_h_c
         exp3_models[C] = fl_model_c
 
-    # ---------------------------------------------------------------------------
-    # Plot Generation & Data Export
-    # ---------------------------------------------------------------------------
-    print("\n--- Generating Plots ---")
-
     # Slice baseline up to 20 for Exp 1 & 2 to prevent X-axis stretching.
-    # LOGS_PER_EPOCH is 10, so 20 epochs = 200 logged steps. 
     base_slice_idx = 200 
     sliced_base_x = base_x[:base_slice_idx]
     sliced_base_val = base_val[:base_slice_idx]
     sliced_base_test = base_test[:base_slice_idx]
 
-    save_plot("Exp 1: Client Scaling", "exp1_scaling.png", 
-              sliced_base_x, sliced_base_val, sliced_base_test, exp1_val, exp1_test, lambda k: f'K={k}')
+    save_plot("Exp 1: Client Scaling", "exp1_scaling.png", sliced_base_x, sliced_base_val, sliced_base_test, exp1_val, exp1_test, lambda k: f'K={k}')
     
     exp2_v_data = {"IID (K=10)": exp1_val[10], "Non-IID (K=10)": exp2_noniid_val}
     exp2_t_data = {"IID (K=10)": exp1_test[10], "Non-IID (K=10)": exp2_noniid_test}
-    save_plot("Exp 2: IID vs Non-IID", "exp2_distribution.png", 
-              sliced_base_x, sliced_base_val, sliced_base_test, exp2_v_data, exp2_t_data)
+    save_plot("Exp 2: IID vs Non-IID", "exp2_distribution.png", sliced_base_x, sliced_base_val, sliced_base_test, exp2_v_data, exp2_t_data)
     
-    # Use full baseline (100 epochs) for Exp 3
-    save_plot("Exp 3: Participation (K=600)", "exp3_participation.png", 
-              base_x, base_val, base_test, exp3_val, exp3_test, lambda c: f'C={c}')
+    # use full baseline for exp 3
+    save_plot("Exp 3: Participation (K=600)", "exp3_participation.png", base_x, base_val, base_test, exp3_val, exp3_test, lambda c: f'C={c}')
             
-    # Save raw arrays and dictionaries to a pickle file for future replotting
+    # save the data 
     raw_data_export = {
         "baseline": {"x": base_x, "val": base_val, "test": base_test, "train_loss": train_loss, "val_loss": val_loss},
         "exp1": {"val": exp1_val, "test": exp1_test},
@@ -353,6 +318,3 @@ if __name__ == "__main__":
     
     with open("results/experiment_raw_data.pkl", "wb") as f:
         pickle.dump(raw_data_export, f)
-
-    print("\n[INFO] Results saved to 'results/final_test_accuracy.txt'")
-    print("[INFO] Raw plotting data successfully serialized to 'results/experiment_raw_data.pkl'")
